@@ -1,0 +1,123 @@
+<template>
+  <div v-if="loading" class="fixed body-bg inset-0 flex items-center justify-center z-50">
+    <img
+      v-if="logoUrl"
+      :src="logoUrl"
+      class="max-h-lg max-w-xl w-auto animate-pulse"
+      alt="Loading..."
+    />
+  </div>
+
+  <div class="app-selector flex flex-col h-full py-4 gap-7 my-3">
+    <div class="flex flex-col justify-center items-center mx-4 gap-4">
+      <img v-if="logoUrl" :src="logoUrl" class="px-4 max-h-lg max-w-xl w-auto mb-6" alt="Logo" />
+
+      <CInputSearch
+        v-model="query"
+        placeholder="Search applications..."
+        class="w-full max-w-2xl mx-auto"
+      />
+    </div>
+
+    <div v-if="filteredApps.length" class="flex-1 overflow-auto">
+      <div class="container mx-auto">
+        <div class="flex flex-wrap justify-center gap-8 p-5 px-7">
+          <a
+            v-for="app in filteredApps"
+            :key="app.applicationID"
+            :href="app.enabled ? app.unify.url : '#'"
+            target="_self"
+            class="block"
+            @click="!app.enabled && $event.preventDefault()"
+          >
+            <Card
+              :pt="{
+                header: {
+                  class: 'flex-1',
+                },
+              }"
+              class="cursor-pointer hover:shadow-lg hover:scale-105 hover:text-primary transition-all duration-200 w-80 h-72"
+            >
+              <template #header>
+                <img
+                  :src="getAppLogoUrl(app)"
+                  :alt="app.unify?.name || app.name"
+                  class="w-full h-full object-contain"
+                />
+              </template>
+
+              <template #title>
+                <div class="text-center text-nowrap text-ellipsis overflow-hidden ...">
+                  {{ app.unify?.name || app.name }}
+                </div>
+              </template>
+            </Card>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="flex justify-center items-center mt-20 w-full">
+      <label class="text-muted-color text-lg">
+        {{ query ? 'No applications found' : 'No applications available' }}
+      </label>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { useApplicationsStore } from '@/stores/applications'
+import { components } from '@cortezaproject/corteza-vue-next'
+import { computed, inject, onMounted, ref } from 'vue'
+const { CInputSearch } = components
+
+const query = ref('')
+const loading = ref(true)
+const applicationsStore = useApplicationsStore()
+
+const $Settings = inject('$Settings')
+const $SystemAPI = inject('$SystemAPI')
+
+const apps = computed(() => {
+  return applicationsStore.unifyOnly
+})
+
+const filteredApps = computed(() => {
+  const queryValue = (query.value || '').toUpperCase()
+  return query.value
+    ? apps.value.filter(
+        app =>
+          (app.name?.toUpperCase() || '').includes(queryValue) ||
+          (app.unify?.name?.toUpperCase() || '').includes(queryValue),
+      )
+    : apps.value
+})
+
+const logoUrl = computed(() => {
+  return $Settings.attachment('ui.mainLogo')
+})
+
+const getAppLogoUrl = app => {
+  if (!app.unify?.logo) {
+    return 'applications/default-app.png'
+  }
+
+  const apiSystem = '/api/system'
+  const apiBaseUrl = new URL($SystemAPI.baseURL).toString()
+
+  if (app.unify.logo.startsWith(apiSystem)) {
+    return apiBaseUrl.substring(0, apiBaseUrl.length - apiSystem.length) + app.unify.logo
+  }
+
+  return app.unify.logo
+}
+
+onMounted(() => {
+  const fetchPromise = applicationsStore.fetchApplications()
+  const delayPromise = new Promise(resolve => setTimeout(resolve, 2000))
+
+  Promise.all([fetchPromise, delayPromise]).finally(() => {
+    loading.value = false
+  })
+})
+</script>
