@@ -49,7 +49,7 @@ export function setThemes(tt: Record<string, any>) {
 export function getTheme(theme: Theme) {
   const variables = getThemeVariables(theme)
 
-  document.documentElement.classList.toggle('dark-theme', theme === 'dark')
+  document.documentElement.classList.toggle('dark', theme === 'dark')
 
   return definePreset(Aura, {
     primitive: {
@@ -62,9 +62,15 @@ export function getTheme(theme: Theme) {
       colorScheme: {
         light: {
           surface: getSurfacePallete(variables['secondary']),
+          primary: {
+            contrastColor: '{surface.50}',
+          },
         },
         dark: {
           surface: getSurfacePallete(variables['secondary']),
+          primary: {
+            contrastColor: '{surface.50}',
+          },
         },
       },
     },

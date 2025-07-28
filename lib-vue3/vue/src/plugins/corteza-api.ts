@@ -28,16 +28,16 @@ const getAccessTokenFn = (app: App, opt: Options = {}) => {
   return app.config.globalProperties.$Auth.accessTokenFn
 }
 
-const getOptions = (app: App, opt: Options = {}) => {
+const getOptions = (service: string, app: App, opt: Options = {}) => {
   return {
-    baseURL: getBaseURL('system', opt),
+    baseURL: getBaseURL(service, opt),
     accessTokenFn: getAccessTokenFn(app, opt),
   }
 }
 
 export const SystemAPIPlugin = {
   install(app: App, opt: Options) {
-    const SystemAPI = new apiClients.System(getOptions(app, opt))
+    const SystemAPI = new apiClients.System(getOptions('system', app, opt))
     app.config.globalProperties.$SystemAPI = SystemAPI
     app.provide('$SystemAPI', SystemAPI)
   },
@@ -45,7 +45,7 @@ export const SystemAPIPlugin = {
 
 export const ComposeAPIPlugin = {
   install(app: App, opt: Options) {
-    const ComposeAPI = new apiClients.Compose(getOptions(app, opt))
+    const ComposeAPI = new apiClients.Compose(getOptions('compose', app, opt))
     app.config.globalProperties.$ComposeAPI = ComposeAPI
     app.provide('$ComposeAPI', ComposeAPI)
   },
@@ -53,7 +53,7 @@ export const ComposeAPIPlugin = {
 
 export const AutomationAPIPlugin = {
   install(app: App, opt: Options) {
-    const AutomationAPI = new apiClients.Automation(getOptions(app, opt))
+    const AutomationAPI = new apiClients.Automation(getOptions('automation', app, opt))
     app.config.globalProperties.$AutomationAPI = AutomationAPI
     app.provide('$AutomationAPI', AutomationAPI)
   },
@@ -61,7 +61,7 @@ export const AutomationAPIPlugin = {
 
 export const FederationAPIPlugin = {
   install(app: App, opt: Options) {
-    const FederationAPI = new apiClients.Federation(getOptions(app, opt))
+    const FederationAPI = new apiClients.Federation(getOptions('federation', app, opt))
     app.config.globalProperties.$FederationAPI = FederationAPI
     app.provide('$FederationAPI', FederationAPI)
   },

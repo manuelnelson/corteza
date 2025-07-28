@@ -2,7 +2,7 @@
   <div class="header-navigation flex flex-wrap items-center py-2 px-3 gap-2">
     <div class="sidebar-spacer" :class="{ block: sidebarExpanded, hidden: !sidebarExpanded }" />
 
-    <h2 class="title flex items-center pl-12 mb-0">
+    <h2 class="title flex text-truncate items-center text-3xl font-bold pl-12 ml-3 mb-0">
       <slot name="title" />
     </h2>
 
@@ -16,7 +16,7 @@
         data-test-id="app-selector"
         :href="appSelectorURL"
         text
-        class="text-gray-800 border-0 px-1"
+        class="text-color"
       >
         {{ labels.appMenu }}
       </Button>
@@ -52,8 +52,13 @@
           severity="secondary"
           size="large"
           class="text-color"
+          :class="{ 'p-0': avatar }"
           @click="toggleProfileMenu"
-        />
+        >
+          <template v-if="avatar" #default>
+            <Avatar :image="avatar" shape="circle" class="w-full h-full" />
+          </template>
+        </Button>
 
         <TieredMenu ref="profileMenu" :model="profileMenuItems" popup />
       </div>
@@ -77,10 +82,6 @@ const props = defineProps({
     type: String,
     default: '../',
   },
-  settings: {
-    type: Object,
-    required: true,
-  },
   labels: {
     type: Object,
     required: true,
@@ -88,6 +89,11 @@ const props = defineProps({
 })
 
 const $Auth = inject('$Auth')
+const $Settings = inject('$Settings')
+
+const settings = computed(() => {
+  return $Settings.get('ui.topbar', {})
+})
 
 const helpMenuRef = ref()
 const helpMenu = ref()
@@ -189,11 +195,21 @@ const helpMenuItems = computed(() => {
 const profileMenuItems = computed(() => {
   const items = []
 
-  items.push({
-    label: props.labels.userSettingsLoggedInAs,
-    disabled: true,
-    class: 'text-sm text-muted-color',
-  })
+  if ($Auth.user.name) {
+    items.push({
+      label: $Auth.user.name,
+      disabled: true,
+      class: 'font-bold',
+    })
+  }
+
+  if ($Auth.user.email) {
+    items.push({
+      label: $Auth.user.email,
+      disabled: true,
+      class: 'text-sm text-muted-color mb-2 -mt-2',
+    })
+  }
 
   profileLinks.value.forEach(profileLink => {
     items.push({
@@ -208,6 +224,7 @@ const profileMenuItems = computed(() => {
       label: props.labels.userSettingsProfile,
       url: $Auth.cortezaAuthURL,
       target: '_blank',
+      icon: 'pi pi-user',
     })
   }
 
@@ -216,6 +233,7 @@ const profileMenuItems = computed(() => {
       label: props.labels.userSettingsChangePassword,
       url: `${$Auth.cortezaAuthURL}/change-password`,
       target: '_blank',
+      icon: 'pi pi-key',
     })
   }
 
@@ -225,8 +243,10 @@ const profileMenuItems = computed(() => {
       items: themes.value.map(theme => ({
         label: theme.label,
         disabled: currentTheme.value === theme.id,
+        icon: `pi pi-${theme.id === 'light' ? 'sun' : 'moon'}`,
         command: () => changeTheme(theme.id),
       })),
+      icon: 'pi pi-palette',
     })
   }
 
@@ -234,10 +254,15 @@ const profileMenuItems = computed(() => {
 
   items.push({
     label: props.labels.userSettingsLogout,
+    icon: 'pi pi-sign-out',
     command: () => logout(),
   })
 
   return items
+})
+
+const avatar = computed(() => {
+  return `${$SystemAPI.baseURL}/attachment/avatar/${$Auth.user.meta.avatarID}/original/profile-photo-avatar`
 })
 
 const toggleHelpMenu = event => {
@@ -271,7 +296,7 @@ const logout = () => {
 }
 
 .sidebar-spacer {
-  min-width: calc(var(--sidebar-width) - 60px);
+  min-width: calc(var(--sidebar-width) - 92px);
 }
 
 .nav-icon {
@@ -279,14 +304,8 @@ const logout = () => {
   height: calc(var(--topbar-height) - 24px);
 }
 
-.title > :deep(*) {
-  padding: 0.25rem 0;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.title {
+  min-height: calc(var(--topbar-height) - 15px);
 }
 
 .tools-wrapper > :deep(*) {

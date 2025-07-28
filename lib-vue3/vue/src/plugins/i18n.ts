@@ -4,23 +4,18 @@ import { createI18n } from 'vue-i18n'
 interface Options {
   appName: string
   locale: string
-  api: any
+  translations: any
 }
 
 export const I18nPlugin = {
   async install(app: App, options: Options) {
     try {
-      const messages = await options.api.localeGet({
-        lang: options.locale,
-        application: options.appName,
-      })
-
       app.use(
         createI18n({
           legacy: false, // Composition API
           locale: options.locale,
           fallbackLocale: 'en',
-          messages,
+          messages: options.translations,
         }),
       )
     } catch (error) {

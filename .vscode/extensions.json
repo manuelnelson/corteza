@@ -21,7 +21,6 @@
 
     // Utility extensions
     "ms-vscode.vscode-json",
-    "formulahendry.auto-rename-tag",
-    "ms-vscode.sublime-keybindings"
+    "formulahendry.auto-rename-tag"
   ]
 }
