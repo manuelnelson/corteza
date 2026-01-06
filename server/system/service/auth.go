@@ -160,7 +160,7 @@ func (svc *auth) External(ctx context.Context, profile types.ExternalAuthUser) (
 						continue
 					}
 
-					return AuthErrCredentialsLinkedToInvalidUser(aam)
+					return err
 				}
 
 				// Assuming we can trust that email has been verified by the provider
@@ -565,9 +565,16 @@ func (svc *auth) procLogin(ctx context.Context, s store.Storer, u *types.User, c
 
 		default:
 			eap := CurrentSettings.Auth.External.Providers.FindByHandle(p.Provider)
-
 			if eap != nil {
+				fmt.Printf("DEBUG: Found provider %s\n", p.Provider)
+				fmt.Printf("DEBUG: Provider Security: %+v\n", eap.Security)
+				fmt.Printf("DEBUG: PermittedRoles: %v\n", eap.Security.PermittedRoles)
+				fmt.Printf("DEBUG: ProhibitedRoles: %v\n", eap.Security.ProhibitedRoles)
+				fmt.Printf("DEBUG: ForcedRoles: %v\n", eap.Security.ForcedRoles)
 				eapSec = &eap.Security
+			} else {
+				fmt.Printf("DEBUG: Provider %s NOT FOUND\n", p.Provider)
+				fmt.Printf("DEBUG: Available providers: %v\n", CurrentSettings.Auth.External.Providers)
 			}
 
 		}
@@ -576,12 +583,24 @@ func (svc *auth) procLogin(ctx context.Context, s store.Storer, u *types.User, c
 			// if authenticated with external auth provider
 			// there might be additional roles that need to be
 			// set to this security session
-			u.SetRoles(internalAuth.ApplyRoleSecurity(
+			fmt.Printf("DEBUG: Applying role security with ProhibitedRoles: %v\n", eapSec.ProhibitedRoles)
+			newRoles := internalAuth.ApplyRoleSecurity(
 				payload.ParseUint64s(eapSec.PermittedRoles),
 				payload.ParseUint64s(eapSec.ProhibitedRoles),
 				payload.ParseUint64s(eapSec.ForcedRoles),
 				u.Roles()...,
-			)...)
+			)
+			fmt.Printf("DEBUG: User roles after ApplyRoleSecurity: %v\n", newRoles)
+
+			// If user has no roles after applying security and there are prohibited roles, reject login
+			if len(newRoles) == 0 && len(eapSec.ProhibitedRoles) > 0 {
+				fmt.Printf("DEBUG: User has prohibited role, rejecting login\n")
+				return errors.Unauthorized("user has prohibited role")
+			}
+
+			u.SetRoles(newRoles...)
+		} else {
+			fmt.Printf("DEBUG: eapSec is nil, skipping role security\n")
 		}
 	}
 
